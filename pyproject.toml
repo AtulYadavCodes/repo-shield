@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repo-shield"
+version = "0.1.0"
+description = "Security-focused repository scanner with Gemini audit support"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "GitPython>=3.1.0",
+  "google-genai>=1.0.0",
+  "python-dotenv>=1.0.0",
+  "streamlit>=1.30.0",
+  "pandas>=2.0.0",
+  "plotly>=5.0.0",
+]
+
+[project.scripts]
+repo-shield = "cli:main"
+
+[tool.setuptools]
+py-modules = [
+  "ai_audit",
+  "analyzer",
+  "cli",
+  "models",
+  "scanner",
+  "streamlit_app",
+]
