@@ -283,7 +283,7 @@ def run_scan(args: argparse.Namespace) -> int:
             "",
             "---",
             "",
-            "## ✅ Recommendations",
+            "## ✅ Tips",
             "",
             "### 🔴 Critical Fixes",
             "- Remove hardcoded credentials immediately  ",

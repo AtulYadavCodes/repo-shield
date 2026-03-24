@@ -94,7 +94,7 @@ Or run Streamlit directly with a specific report:
 1. Activate environment.
 2. Run scan with thisdir or repo URL.
 3. Open printed Streamlit URL.
-4. Review findings and recommendations in report.md.
+4. Review findings and tips in report.md.
 
 ## Troubleshooting
 
