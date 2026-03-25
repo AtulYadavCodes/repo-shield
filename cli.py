@@ -125,12 +125,31 @@ def run_scan(args: argparse.Namespace) -> int:
 
         def _audit_summary_text(item: dict) -> str:
             if item.get("error"):
+                error_text = (item.get("error") or "").lower()
+                if "429" in error_text or "resource_exhausted" in error_text or "quota" in error_text:
+                    return (
+                        "AI audit skipped: Google Gemini quota / rate limit exceeded. "
+                        "Configure GOOGLE_API_KEY billing/quota, reduce --max-files, or try again later."
+                    )
                 return f"Audit failed: {item['error']}"
+
             result_text = (item.get("result") or "").strip()
             if not result_text:
                 return "No AI response returned."
-            first_line = result_text.splitlines()[0].strip()
-            return first_line or "AI response received."
+
+            lines = [ln.strip() for ln in result_text.splitlines() if ln.strip()]
+            if not lines:
+                return "AI response received."
+
+            # Prefer the first non-heading line so we don't just show a big markdown title.
+            main_line = lines[0]
+            if main_line.lstrip().startswith("#") and len(lines) > 1:
+                main_line = lines[1]
+
+            # Keep the table cell concise but more informative than a bare heading.
+            if len(main_line) > 160:
+                main_line = main_line[:157] + "..."
+            return main_line or "AI response received."
 
         critical_findings = []
         high_findings = []
@@ -276,6 +295,25 @@ def run_scan(args: argparse.Namespace) -> int:
                 lines.append(
                     f"| {idx} | {_escape_md(os.path.basename(item['file_path']))} | {status} | {_escape_md(_audit_summary_text(item))} |"
                 )
+
+            # Append a detailed section with the full AI markdown per file.
+            detailed_items = [item for item in audits if item.get("result") and not item.get("error")]
+            if detailed_items:
+                lines.extend([
+                    "",
+                    "### 🧠 Detailed AI Reports",
+                    "",
+                ])
+                for item in detailed_items:
+                    file_label = os.path.basename(item["file_path"])
+                    lines.extend([
+                        f"#### {file_label}",
+                        "",
+                        item["result"].strip(),
+                        "",
+                        "---",
+                        "",
+                    ])
         else:
             lines.append("AI audit was not executed for this run (scanner-only mode or no files selected).")
 
