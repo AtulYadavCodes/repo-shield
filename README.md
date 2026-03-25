@@ -2,6 +2,15 @@
 
 Repo Shield is an AI-powered security scanner for code repositories. It detects risky patterns, generates an AI-ready markdown report, and opens a Streamlit dashboard so you can review findings and AI insights in one place.
 
+## Screenshots
+
+![Repo Shield dashboard 1](./Screenshot%202026-03-25%20131605.png)
+![Repo Shield dashboard 2](./Screenshot%202026-03-25%20134805.png)
+![Repo Shield dashboard 3](./Screenshot%202026-03-25%20134826.png)
+![Repo Shield dashboard 4](./Screenshot%202026-03-25%20134843.png)
+![Repo Shield dashboard 5](./Screenshot%202026-03-25%20134858.png)
+![Repo Shield dashboard 6](./Screenshot%202026-03-25%20134935.png)
+
 ## Features
 
 - Detects high-entropy, secret-like strings
