@@ -1,6 +1,6 @@
 # Repo Shield
 
-Repo Shield is a CLI tool that scans repositories for risky patterns, writes a markdown security report, and opens a Streamlit dashboard to explore the findings.
+Repo Shield is an AI-powered security scanner for code repositories. It detects risky patterns, generates an AI-ready markdown report, and opens a Streamlit dashboard so you can review findings and AI insights in one place.
 
 ## Features
 
@@ -8,7 +8,7 @@ Repo Shield is a CLI tool that scans repositories for risky patterns, writes a m
 - Flags hardcoded credential patterns (tokens, passwords, API keys)
 - Identifies JWTs and AWS-style access keys
 - Inspects dependency manifests for risky / outdated versions
-- Optionally runs AI-powered audit summaries using Gemini
+- Runs optional AI audit summaries using Google Gemini on high‑risk files
 
 ## Requirements
 
