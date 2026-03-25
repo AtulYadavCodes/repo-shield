@@ -1,14 +1,14 @@
 # Repo Shield
 
-Repo Shield scans repositories for risky patterns, generates a markdown report, and opens a Streamlit dashboard that visualizes report data.
+Repo Shield is a CLI tool that scans repositories for risky patterns, writes a markdown security report, and opens a Streamlit dashboard to explore the findings.
 
-## What It Detects
+## Features
 
-- High-entropy secret-like strings
-- Hardcoded credential patterns
-- JWT and AWS key patterns
-- Risky dependency version usage in package manifests
-- Optional AI audit summaries using Gemini
+- Detects high-entropy, secret-like strings
+- Flags hardcoded credential patterns (tokens, passwords, API keys)
+- Identifies JWTs and AWS-style access keys
+- Inspects dependency manifests for risky / outdated versions
+- Optionally runs AI-powered audit summaries using Gemini
 
 ## Requirements
 
@@ -21,63 +21,67 @@ From the project root:
 
     python -m pip install -e .
 
-If using virtual environment on Windows:
+If using a virtual environment on Windows:
 
     . ./.venv/Scripts/Activate.ps1
     python -m pip install -e .
 
-Verify CLI:
+Verify the CLI is installed:
 
     repo-shield --help
 
-If command is not found, use the venv executable directly:
+If the command is not found, use the venv executable directly:
 
     .venv/Scripts/repo-shield.exe --help
 
-## Configure AI (Optional)
+## Usage
 
-Create a .env file in project root:
+Basic scans:
 
-    GOOGLE_API_KEY=your_key_here
+- Scan a GitHub repository:
 
-If key is missing or quota is exhausted, run with --no-ai.
+      repo-shield scan https://github.com/user/repo
 
-## Core Commands
+- Scan the current directory explicitly:
 
-Scan a GitHub repository:
+      repo-shield scan thisdir
 
-    repo-shield scan https://github.com/user/repo
+- Scan the current directory by default (no repo argument):
 
-Scan current directory explicitly:
+      repo-shield scan
 
-    repo-shield scan thisdir
+- Scan a local folder path:
 
-Scan current directory by default (no repo argument):
+      repo-shield scan C:/path/to/project
 
-    repo-shield scan
+### Useful Flags
 
-Scan a local folder path:
-
-    repo-shield scan C:/path/to/project
-
-## Useful Flags
-
-- --no-ai: skip Gemini audit (recommended when quota is limited)
-- --md: print markdown report to terminal
-- --max-files N: limit number of files sent to AI audit
+- `--no-ai` – skip Gemini audit (recommended when quota is limited)
+- `--md` – print the markdown report to the terminal
+- `--max-files N` – limit the number of files sent to the AI audit
 
 Examples:
 
     repo-shield scan thisdir --md --no-ai
     repo-shield scan https://github.com/user/repo --max-files 5
 
+## Optional AI Configuration
+
+To enable AI audit summaries, create a `.env` file in the project root:
+
+    GOOGLE_API_KEY=your_key_here
+
+If the key is missing or quota is exhausted, run with `--no-ai` to skip AI analysis:
+
+    repo-shield scan thisdir --no-ai
+
 ## Report And Dashboard Flow
 
-1. Scan runs and writes report.md in current directory.
-2. CLI auto-launches Streamlit in report mode.
-3. CLI prints the dashboard URL.
+1. A scan runs and writes `report.md` in the current directory.
+2. The CLI auto-launches Streamlit in report mode.
+3. The CLI prints the dashboard URL to the terminal.
 
-Note: if port 8501 is busy, Repo Shield auto-picks another available port and prints that URL.
+If port 8501 is busy, Repo Shield automatically picks another available port and prints that URL instead.
 
 ## Launch Dashboard Manually
 
@@ -85,22 +89,22 @@ Use the built-in UI command:
 
     repo-shield ui
 
-Or run Streamlit directly with a specific report:
+Or run Streamlit directly with a specific report file:
 
     python -m streamlit run streamlit_app.py --server.port 8502 -- --report-file report.md
 
 ## Typical Workflow
 
-1. Activate environment.
-2. Run scan with thisdir or repo URL.
-3. Open printed Streamlit URL.
-4. Review findings and tips in report.md.
+1. Activate your Python environment.
+2. Run a scan with `thisdir` or a repo URL.
+3. Open the printed Streamlit URL in your browser.
+4. Review findings and remediation tips in `report.md` and the dashboard.
 
 ## Troubleshooting
 
-- repo-shield not recognized:
-  activate your virtual environment or call .venv/Scripts/repo-shield.exe directly.
-- AI quota errors (429):
-  rerun with --no-ai.
-- Streamlit not opening:
-  use the exact Dashboard URL printed by the scan command.
+- `repo-shield` not recognized:
+  - Activate your virtual environment, or call `.venv/Scripts/repo-shield.exe` directly.
+- AI quota errors (HTTP 429):
+  - Rerun with `--no-ai`.
+- Streamlit dashboard not opening automatically:
+  - Copy and paste the exact dashboard URL printed by the scan command into your browser, or start it manually as shown above.
