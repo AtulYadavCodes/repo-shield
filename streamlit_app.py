@@ -108,9 +108,11 @@ def _render_report_dashboard(report_path: str) -> None:
         report_text = handle.read()
 
     st.success(f"Loaded report: {os.path.basename(report_path)}")
-    # Tip: use your browser's print dialog (Ctrl+P / Cmd+P)
-    # to save this dashboard view as a PDF.
-    st.caption("Tip: Use your browser's Print → Save as PDF to export this dashboard.")
+    # Guide users to use Streamlit's built-in print option for PDF export.
+    st.caption(
+        "Tip: click the ⋮ (three dots) menu in the top-right of the Streamlit app, "
+        "choose 'Print', then use your browser's 'Save as PDF' option."
+    )
 
     st.markdown(report_text)
 
