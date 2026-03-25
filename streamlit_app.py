@@ -21,7 +21,10 @@ def _load_findings_from_report(report_text: str) -> pd.DataFrame:
     header_idx = None
     divider_idx = None
     for idx, line in enumerate(lines):
-        if line.strip() == "| # | File | Severity | Reason |":
+        if line.strip() in (
+            "| # | File | Severity | Reason |",
+            "| # | File | Severity (pre-AI) | Reason |",
+        ):
             header_idx = idx
         if header_idx is not None and idx == header_idx + 1 and line.strip().startswith("|---"):
             divider_idx = idx
@@ -57,7 +60,10 @@ def _load_risk_breakdown_from_report(report_text: str) -> pd.DataFrame:
     header_idx = None
     divider_idx = None
     for idx, line in enumerate(lines):
-        if line.strip() == "| Severity  | Count |":
+        if line.strip() in (
+            "| Severity  | Count |",
+            "| Severity (pre-AI) | Count |",
+        ):
             header_idx = idx
         if header_idx is not None and idx == header_idx + 1 and line.strip().startswith("|---"):
             divider_idx = idx
@@ -102,6 +108,10 @@ def _render_report_dashboard(report_path: str) -> None:
         report_text = handle.read()
 
     st.success(f"Loaded report: {os.path.basename(report_path)}")
+    # Tip: use your browser's print dialog (Ctrl+P / Cmd+P)
+    # to save this dashboard view as a PDF.
+    st.caption("Tip: Use your browser's Print → Save as PDF to export this dashboard.")
+
     st.markdown(report_text)
 
     risk_df = _load_risk_breakdown_from_report(report_text)

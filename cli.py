@@ -28,7 +28,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     scan_parser.add_argument("--max-files", type=int, default=0, help="Maximum files to audit (0 = all)")
     scan_parser.add_argument("--no-ai", action="store_true", help="Run scanner only without Gemini audit")
-    scan_parser.add_argument("--md", action="store_true", help="Emit readable Markdown report to stdout")
 
     subparsers.add_parser("ui", help="Launch Streamlit dashboard")
 
@@ -151,6 +150,47 @@ def run_scan(args: argparse.Namespace) -> int:
                 main_line = main_line[:157] + "..."
             return main_line or "AI response received."
 
+        def _parse_ai_sections(text: str) -> dict:
+            """Heuristically extract key sections from the AI markdown.
+
+            We look for headings like "Main Risk", "Specific Issues", and
+            "Concrete Fix Suggestions" and pull a few lines under each to keep
+            things structured but not overly long.
+            """
+
+            lines = [ln.rstrip() for ln in (text or "").splitlines()]
+
+            def _grab_section(keywords: list[str], max_lines: int = 6) -> str:
+                start_idx: int | None = None
+                for i, raw in enumerate(lines):
+                    low = raw.lower().lstrip()
+                    if low.startswith("#") and any(k in low for k in keywords):
+                        start_idx = i + 1
+                        break
+                if start_idx is None:
+                    return ""
+
+                collected: list[str] = []
+                for raw in lines[start_idx:]:
+                    if raw.lstrip().startswith("#"):
+                        break
+                    if raw.strip():
+                        collected.append(raw.strip())
+                    if len(collected) >= max_lines:
+                        break
+                return " ".join(collected)
+
+            return {
+                "main_risk": _grab_section(["main risk", "risk summary", "summary of risk"]),
+                "issues": _grab_section(["specific issues", "detailed issues", "issues found"]),
+                "fixes": _grab_section([
+                    "concrete fix",
+                    "fix suggestions",
+                    "remediation",
+                    "recommendations",
+                ]),
+            }
+
         critical_findings = []
         high_findings = []
         medium_findings = []
@@ -201,11 +241,14 @@ def run_scan(args: argparse.Namespace) -> int:
             "",
             "👉 Immediate attention is required for **credential exposure and secret leakage**.",
             "",
+            "ℹ️ Note: These counts come from the static scanner/AST layer and represent *suspected* risk before AI review.",
+            "   See the 🤖 AI Audit section for confirmations and false-positive explanations.",
+            "",
             "---",
             "",
             "## 📈 Risk Breakdown",
             "",
-            "| Severity  | Count |",
+            "| Severity (pre-AI) | Count |",
             "|----------|------:|",
             f"| 🔴 Critical | {len(critical_findings)} |",
             f"| 🟠 High     | {len(high_findings)} |",
@@ -261,7 +304,7 @@ def run_scan(args: argparse.Namespace) -> int:
             "",
             "## 📋 Detailed Findings",
             "",
-            "| # | File | Severity | Reason |",
+            "| # | File | Severity (pre-AI) | Reason |",
             "|---|------|----------|--------|",
         ])
 
@@ -301,15 +344,43 @@ def run_scan(args: argparse.Namespace) -> int:
             if detailed_items:
                 lines.extend([
                     "",
-                    "### 🧠 Detailed AI Reports",
+                    "### 🧠 Detailed AI Summaries (per file)",
                     "",
                 ])
                 for item in detailed_items:
                     file_label = os.path.basename(item["file_path"])
+                    sections = _parse_ai_sections(item.get("result") or "")
+                    main_risk = (sections.get("main_risk") or "").strip()
+                    issues = (sections.get("issues") or "").strip()
+                    fixes = (sections.get("fixes") or "").strip()
+
                     lines.extend([
                         f"#### {file_label}",
                         "",
-                        item["result"].strip(),
+                        "| Section | Details |",
+                        "|---------|---------|",
+                    ])
+
+                    if not any([main_risk, issues, fixes]):
+                        fallback = (item.get("result") or "").strip()
+                        if len(fallback) > 500:
+                            fallback = fallback[:497] + "..."
+                        lines.extend([
+                            f"| Summary | {_escape_md(fallback)} |",
+                            "",
+                            "---",
+                            "",
+                        ])
+                        continue
+
+                    if main_risk:
+                        lines.append(f"| Main Risk | {_escape_md(main_risk)} |")
+                    if issues:
+                        lines.append(f"| Specific Issues | {_escape_md(issues)} |")
+                    if fixes:
+                        lines.append(f"| Fix Suggestions | {_escape_md(fixes)} |")
+
+                    lines.extend([
                         "",
                         "---",
                         "",
@@ -343,10 +414,8 @@ def run_scan(args: argparse.Namespace) -> int:
         return "\n".join(lines)
 
     def _log(message: str) -> None:
-        if args.md:
-            print(message, file=sys.stderr)
-        else:
-            print(message)
+        # Keep terminal output minimal: only high-level status.
+        print(message)
 
     def _write_default_report(findings: list, audits: list[dict], clone_path: str) -> str:
         report_text = _build_markdown_report(findings, audits, clone_path)
@@ -357,35 +426,28 @@ def run_scan(args: argparse.Namespace) -> int:
         return report_path
 
     if source_ref.lower() == "thisdir":
-        _log("Copying and scanning current directory (thisdir)")
+        _log("Starting scan: current directory (thisdir)")
     else:
-        _log(f"Cloning/copying and scanning: {source_ref}")
+        _log(f"Starting scan: {source_ref}")
 
     clone_path, tasks, tmp_dir = clone_and_scan(source_ref)
     clone_name = _clone_label(clone_path)
 
     audit_results: list[dict] = []
     try:
-        _log(f"Cloned to: {clone_name}")
-        _log(f"High-risk findings: {len(tasks)}")
+        _log(f"Repository prepared as: {clone_name}")
+        _log(f"Scanner/AST findings detected: {len(tasks)}")
 
         if not tasks:
             report_path = _write_default_report([], [], clone_path)
             _start_streamlit_background(report_path)
-            if args.md:
-                print(_build_markdown_report([], [], clone_path))
-            else:
-                _log("No high-risk findings.")
+            _log("Scan complete: no high-risk findings. Markdown report and dashboard are ready.")
             return 0
-
-        for index, task in enumerate(tasks, 1):
-            _log(f"{index:03d}. {task.reason} -> {os.path.basename(task.file_path)}")
 
         if args.no_ai:
             report_path = _write_default_report(tasks, [], clone_path)
             _start_streamlit_background(report_path)
-            if args.md:
-                print(_build_markdown_report(tasks, [], clone_path))
+            _log("Scan complete (scanner only): Markdown report and dashboard are ready.")
             return 0
 
         try:
@@ -398,8 +460,9 @@ def run_scan(args: argparse.Namespace) -> int:
         if args.max_files > 0:
             selected = tasks[: args.max_files]
 
+        _log(f"Running AI audit on {len(selected)} files...")
+
         for idx, task in enumerate(selected, 1):
-            _log(f"\nAuditing {idx}/{len(selected)}: {os.path.basename(task.file_path)}")
             try:
                 with open(task.file_path, "r", encoding="utf-8", errors="ignore") as handle:
                     code = handle.read()
@@ -412,9 +475,7 @@ def run_scan(args: argparse.Namespace) -> int:
                         "result": result,
                     }
                 )
-                _log(result)
             except Exception as exc:
-                error_text = f"Audit failed for {os.path.basename(task.file_path)}: {exc}"
                 audit_results.append(
                     {
                         "file_path": task.file_path,
@@ -423,17 +484,16 @@ def run_scan(args: argparse.Namespace) -> int:
                         "error": str(exc),
                     }
                 )
-                _log(error_text)
+                _log(f"AI audit error on {os.path.basename(task.file_path)}: {exc}")
 
             if idx % 5 == 0 and idx < len(selected):
-                _log("Reached 5 requests. Waiting 60 seconds to avoid quota limits...")
+                # Keep this message short; still inform about throttling.
+                _log("Rate limit guard: pausing briefly after 5 audits...")
                 time.sleep(60)
-
-        if args.md:
-            print(_build_markdown_report(tasks, audit_results, clone_path))
 
         report_path = _write_default_report(tasks, audit_results, clone_path)
         _start_streamlit_background(report_path)
+        _log("Scan complete (scanner + AI): Markdown report and dashboard are ready.")
 
         return 0
     finally:
