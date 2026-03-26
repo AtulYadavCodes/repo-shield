@@ -46,7 +46,7 @@ The result is a practical developer tool for quickly identifying security risks 
 
 ### 📊 Reporting & Visualization
 
-- Generates structured **Markdown security reports**
+- Presents a structured **security report dashboard**
 - Includes **severity classification** (Critical / High / Medium)
 - Provides **AI summaries per finding**
 - Launches an interactive **Streamlit dashboard**
@@ -125,13 +125,12 @@ repo-shield scan C:/path/to/project
 | Flag            | Description                          |
 | --------------- | ------------------------------------ |
 | `--no-ai`       | Skip AI audit (faster, no API usage) |
-| `--md`          | Print Markdown report to terminal    |
 | `--max-files N` | Limit files sent to AI audit         |
 
 Example:
 
 ```bash
-repo-shield scan thisdir --md --no-ai
+repo-shield scan thisdir --no-ai
 repo-shield scan https://github.com/user/repo --max-files 5
 ```
 
@@ -155,8 +154,8 @@ repo-shield scan thisdir --no-ai
 
 ## 📄 Output Workflow
 
-1. Scan executes → generates `report.md`
-2. CLI auto-launches Streamlit dashboard
+1. Scan executes
+2. CLI auto-launches the Streamlit dashboard as the primary security report
 3. Dashboard URL is printed in terminal
 
 If port `8501` is unavailable, an alternative port is automatically selected.
@@ -165,17 +164,25 @@ If port `8501` is unavailable, an alternative port is automatically selected.
 
 ## 📊 Dashboard
 
-Launch manually:
+Launch manually (to review the latest scan report):
 
 ```bash
 repo-shield ui
 ```
 
-Or:
+---
 
-```bash
-python -m streamlit run streamlit_app.py -- --report-file report.md
-```
+## 📂 Sample Reports
+
+This repository includes example security reports in `sample-reports/`:
+
+- `gofiber.pdf`
+- `Passwordgenerator.pdf`
+- `megatronix.pdf`
+- `revnet.pdf`
+- `trading agent.pdf`
+
+You can open these PDFs to see what Repo Shield's generated reports look like for real-world projects.
 
 ---
 

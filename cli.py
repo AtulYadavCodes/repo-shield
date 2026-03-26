@@ -437,7 +437,7 @@ def run_scan(args: argparse.Namespace) -> int:
         report_path = os.path.join(os.getcwd(), "report.md")
         with open(report_path, "w", encoding="utf-8") as handle:
             handle.write(report_text)
-        _log(f"Markdown report saved: {report_path}")
+        _log(f"Security report file saved in current directory as: {report_path}")
         return report_path
 
     if source_ref.lower() == "thisdir":
@@ -456,13 +456,13 @@ def run_scan(args: argparse.Namespace) -> int:
         if not tasks:
             report_path = _write_default_report([], [], clone_path)
             _start_streamlit_background(report_path)
-            _log("Scan complete: no high-risk findings. Markdown report and dashboard are ready.")
+            _log("Scan complete: no high-risk findings. Dashboard is ready.")
             return 0
 
         if args.no_ai:
             report_path = _write_default_report(tasks, [], clone_path)
             _start_streamlit_background(report_path)
-            _log("Scan complete (scanner only): Markdown report and dashboard are ready.")
+            _log("Scan complete (scanner only): Dashboard is ready.")
             return 0
 
         try:
@@ -507,7 +507,7 @@ def run_scan(args: argparse.Namespace) -> int:
             _log("No eligible files for AI audit (only low-risk manifests/lockfiles found).")
             report_path = _write_default_report(tasks, [], clone_path)
             _start_streamlit_background(report_path)
-            _log("Scan complete (scanner only: no AI-eligible files). Markdown report and dashboard are ready.")
+            _log("Scan complete (scanner only: no AI-eligible files). Dashboard is ready.")
             return 0
 
         _log(f"Running AI audit on {len(ai_candidates)} files...")
@@ -543,7 +543,7 @@ def run_scan(args: argparse.Namespace) -> int:
 
         report_path = _write_default_report(tasks, audit_results, clone_path)
         _start_streamlit_background(report_path)
-        _log("Scan complete (scanner + AI): Markdown report and dashboard are ready.")
+        _log("Scan complete (scanner + AI): Dashboard is ready.")
 
         return 0
     finally:
