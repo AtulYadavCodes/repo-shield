@@ -19,11 +19,11 @@ The result is a practical developer tool for quickly identifying security risks 
 
 ## 📸 Screenshots
 
-![Repo Shield dashboard 5](./Screenshot%202026-03-25%20134858.png)
-![Repo Shield dashboard 6](./Screenshot%202026-03-25%20134935.png)
-![Repo Shield dashboard 2](./Screenshot%202026-03-25%20134805.png)
-![Repo Shield dashboard 3](./Screenshot%202026-03-25%20134826.png)
-![Repo Shield dashboard 4](./Screenshot%202026-03-25%20134843.png)
+![Repo Shield dashboard 5](./pics/Screenshot%202026-03-25%20134858.png)
+![Repo Shield dashboard 6](./pics/Screenshot%202026-03-25%20134935.png)
+![Repo Shield dashboard 2](./pics/Screenshot%202026-03-25%20134805.png)
+![Repo Shield dashboard 3](./pics/Screenshot%202026-03-25%20134826.png)
+![Repo Shield dashboard 4](./pics/Screenshot%202026-03-25%20134843.png)
 
 ---
 

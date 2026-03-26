@@ -5,13 +5,13 @@ import socket
 import subprocess
 import sys
 import time
-from collections import Counter
 from datetime import date
 
 from dotenv import load_dotenv
 
 from ai_audit import GeminiAuditor
 from scanner import clone_and_scan
+from models import AuditTask
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -222,6 +222,23 @@ def run_scan(args: argparse.Namespace) -> int:
             if len(dep_examples) >= 3:
                 break
 
+        # Identify manifest/lock files that were reported only by the
+        # static scanner (not sent to AI). This is based on the
+        # difference between all manifest/lock findings and those that
+        # actually appear in the AI audit results.
+        manifest_lock_names = {"package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"}
+        manifests_in_findings = {
+            os.path.basename(task.file_path)
+            for task in findings
+            if os.path.basename(task.file_path) in manifest_lock_names
+        }
+        manifests_in_ai = {
+            os.path.basename(item.get("file_path", ""))
+            for item in audits
+            if item.get("file_path") and os.path.basename(item["file_path"]) in manifest_lock_names
+        }
+        excluded_ai_files = sorted(name for name in manifests_in_findings - manifests_in_ai)
+
         lines = [
             "# 🛡️ Repo Shield Security Report",
             "",
@@ -321,6 +338,20 @@ def run_scan(args: argparse.Namespace) -> int:
             "## 🤖 AI Audit",
             "",
         ])
+
+        if excluded_ai_files:
+            lines.extend([
+                "⚠️ Note: The following manifest/lock files are *not* sent to AI for auditing and are reported",
+                "   based solely on static scanner/AST analysis.",
+                "   Only manifest/lock files flagged as high risk (secrets / very high-entropy strings) are",
+                "   included in the AI audit.",
+                "   When these files show only medium or low risk issues (for example unpinned dependencies or",
+                "   integrity hashes in package-lock.json), they are generally considered safe metadata rather",
+                "   than true code-level vulnerabilities.",
+            ])
+            for name in excluded_ai_files:
+                lines.append(f"- {name}")
+            lines.extend(["", "---", ""])
 
         if audits:
             success_count = sum(1 for item in audits if item.get("result") and not item.get("error"))
@@ -440,13 +471,48 @@ def run_scan(args: argparse.Namespace) -> int:
             _log(str(exc))
             return 1
 
-        selected = tasks
+        # Build AI candidate set. Manifest/lock files are only included
+        # when they appear to be truly high-risk (e.g. secrets/high-entropy),
+        # not for routine issues like unpinned dependencies.
+        manifest_lock_names = {"package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"}
+
+        def _is_high_risk_manifest(task: AuditTask) -> bool:
+            base = os.path.basename(task.file_path)
+            if base not in manifest_lock_names:
+                return False
+
+            reason = task.reason.lower()
+            if any(k in reason for k in ["hardcoded credential", "jwt token", "aws access key", "aws secret key"]):
+                return True
+
+            # Any high-entropy secret-like string in a manifest/lock file is
+            # considered high-risk enough to send to AI.
+            if "high-entropy" in reason:
+                return True
+            return False
+
+        ai_candidates: list[AuditTask] = []
+        for t in tasks:
+            base = os.path.basename(t.file_path)
+            if base in manifest_lock_names:
+                if _is_high_risk_manifest(t):
+                    ai_candidates.append(t)
+            else:
+                ai_candidates.append(t)
+
         if args.max_files > 0:
-            selected = tasks[: args.max_files]
+            ai_candidates = ai_candidates[: args.max_files]
 
-        _log(f"Running AI audit on {len(selected)} files...")
+        if not ai_candidates:
+            _log("No eligible files for AI audit (only low-risk manifests/lockfiles found).")
+            report_path = _write_default_report(tasks, [], clone_path)
+            _start_streamlit_background(report_path)
+            _log("Scan complete (scanner only: no AI-eligible files). Markdown report and dashboard are ready.")
+            return 0
 
-        for idx, task in enumerate(selected, 1):
+        _log(f"Running AI audit on {len(ai_candidates)} files...")
+
+        for idx, task in enumerate(ai_candidates, 1):
             try:
                 with open(task.file_path, "r", encoding="utf-8", errors="ignore") as handle:
                     code = handle.read()
@@ -470,7 +536,7 @@ def run_scan(args: argparse.Namespace) -> int:
                 )
                 _log(f"AI audit error on {os.path.basename(task.file_path)}: {exc}")
 
-            if idx % 5 == 0 and idx < len(selected):
+            if idx % 5 == 0 and idx < len(ai_candidates):
                 # Keep this message short; still inform about throttling.
                 _log("Rate limit guard: pausing briefly after 5 audits...")
                 time.sleep(60)
