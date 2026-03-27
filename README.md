@@ -1,245 +1,95 @@
-# 🛡️ Repo Shield
+# Repo Shield
 
-**Repo Shield** is a hybrid **static + AI-powered security scanner** for code repositories.
-It detects potential vulnerabilities using deterministic analysis (AST, regex, entropy) and refines results using an AI auditing layer to reduce false positives and provide actionable insights.
+Repo Shield is a terminal-first security scanner for code repositories.
+It uses static checks (AST, regex, entropy) and an optional Gemini AI audit.
 
----
+## Features
 
-## 🚀 Overview
+- Detects high-entropy secret-like strings
+- Flags hardcoded credentials (tokens, passwords, API keys)
+- Identifies JWT and AWS-style key patterns
+- Scans dependency manifests for risky/unpinned versions
+- Optionally runs AI audit summaries with Gemini
+- Prints a full scan report directly in the terminal
 
-Repo Shield bridges the gap between traditional static analysis and modern AI-assisted auditing:
+## Requirements
 
-- **Static analysis layer** → detects candidate risks
-- **AI auditing layer** → validates findings and adds context
-- **Reporting layer** → generates structured insights + visual dashboard
+- Python 3.10+
+- Git available in PATH
 
-The result is a practical developer tool for quickly identifying security risks in any repository.
-
----
-
-## 📸 Screenshots
-
-![Repo Shield dashboard 5](./pics/Screenshot%202026-03-25%20134858.png)
-![Repo Shield dashboard 6](./pics/Screenshot%202026-03-25%20134935.png)
-![Repo Shield dashboard 2](./pics/Screenshot%202026-03-25%20134805.png)
-![Repo Shield dashboard 3](./pics/Screenshot%202026-03-25%20134826.png)
-![Repo Shield dashboard 4](./pics/Screenshot%202026-03-25%20134843.png)
-
----
-
-## ⚙️ Core Features
-
-### 🔍 Static Analysis Engine
-
-- Detects **high-entropy secret-like strings**
-- Identifies **hardcoded credentials** (API keys, tokens, passwords)
-- Flags **JWT tokens and AWS credentials**
-- Performs **dependency risk analysis** (unpinned / unsafe versions)
-- Uses **AST-based inspection** to detect unsafe constructs (e.g., `eval`, `exec`)
-
-### 🤖 AI Audit Layer (Optional)
-
-- Validates flagged issues using **Google Gemini**
-- Reduces false positives (e.g., distinguishing hashes from secrets)
-- Generates **human-readable security insights**
-- Provides **actionable remediation suggestions**
-
-### 📊 Reporting & Visualization
-
-- Presents a structured **security report dashboard**
-- Includes **severity classification** (Critical / High / Medium)
-- Provides **AI summaries per finding**
-- Launches an interactive **Streamlit dashboard**
-  - Risk breakdown charts
-  - Findings distribution
-  - File-level insights
-
----
-
-## 🧱 Architecture
-
-```text
-Repository Input
-            ↓
-Static Analysis (AST + Regex + Entropy)
-            ↓
-Candidate Risk Detection
-            ↓
-AI Audit (Gemini)
-            ↓
-Structured Report + Dashboard
-```
-
----
-
-## 📦 Requirements
-
-- Python **3.10+**
-- Git installed and available in PATH
-
----
-
-## 🛠️ Installation
+## Installation
 
 ```bash
 python -m pip install -e .
 ```
 
-### Windows (venv)
+Windows (venv):
 
 ```powershell
 . ./.venv/Scripts/Activate.ps1
 python -m pip install -e .
 ```
 
-Verify installation:
+## Usage
+
+Scan current directory:
 
 ```bash
-repo-shield --help
-```
-
----
-
-## 🧪 Usage
-
-### Basic Scans
-
-```bash
-# Scan a GitHub repository
-repo-shield scan https://github.com/user/repo
-
-# Scan current directory
 repo-shield scan
-
-# Explicit current directory
-repo-shield scan thisdir
-
-# Scan local folder
-repo-shield scan C:/path/to/project
 ```
 
----
+Scan explicit source:
 
-### ⚡ Useful Flags
+```bash
+repo-shield scan thisdir
+repo-shield scan C:/path/to/project
+repo-shield scan https://github.com/user/repo
+```
 
-| Flag            | Description                          |
-| --------------- | ------------------------------------ |
-| `--no-ai`       | Skip AI audit (faster, no API usage) |
-| `--max-files N` | Limit files sent to AI audit         |
+Useful flags:
 
-Example:
+- `--no-ai` skip AI audit
+- `--max-files N` limit files sent to AI audit
+
+Examples:
 
 ```bash
 repo-shield scan thisdir --no-ai
 repo-shield scan https://github.com/user/repo --max-files 5
 ```
 
----
+## AI Setup (Optional)
 
-## 🤖 AI Configuration (Optional)
-
-Create a `.env` file:
+Create `.env` in the project root:
 
 ```env
 GOOGLE_API_KEY=your_key_here
 ```
 
-Run without AI:
+If the key is missing or quota is exhausted, run scanner-only mode:
 
 ```bash
 repo-shield scan thisdir --no-ai
 ```
 
----
+## Output
 
-## 📄 Output Workflow
+Repo Shield prints:
 
-1. Scan executes
-2. CLI auto-launches the Streamlit dashboard as the primary security report
-3. Dashboard URL is printed in terminal
+- Static finding counts by severity
+- Detailed findings list
+- AI audit summary per file
+- Regex + AI confirmed "real issues"
 
-If port `8501` is unavailable, an alternative port is automatically selected.
+All output is shown in the terminal. No dashboard or report file is generated.
 
----
+## Troubleshooting
 
-## 📊 Dashboard
+`repo-shield` not recognized:
 
-Launch manually (to review the latest scan report):
+- Activate your virtual environment
+- Or use `.venv/Scripts/repo-shield.exe --help`
 
-```bash
-repo-shield ui
-```
+AI quota errors (HTTP 429):
 
----
-
-## 📂 Sample Reports
-
-This repository includes example security reports in `sample-reports/`:
-
-- `gofiber.pdf`
-- `Passwordgenerator.pdf`
-- `megatronix.pdf`
-- `revnet.pdf`
-- `trading agent.pdf`
-
-You can open these PDFs to see what Repo Shield's generated reports look like for real-world projects.
-
----
-
-## 🔄 Typical Workflow
-
-1. Activate environment
-2. Run scan (`repo-shield scan`)
-3. Open dashboard
-4. Review:
-   - Critical findings
-   - AI audit insights
-   - Dependency risks
-
----
-
-## ⚠️ Troubleshooting
-
-**Command not found**
-
-- Activate virtual environment
-- Or use:
-
-  ```bash
-  .venv/Scripts/repo-shield.exe --help
-  ```
-
-**AI quota errors (429)**
-
-- Use:
-
-  ```bash
-  --no-ai
-  ```
-
-**Dashboard not opening**
-
-- Use printed URL manually
-- Or run Streamlit manually
-
----
-
-## 🎯 Design Philosophy
-
-Repo Shield is built on a simple principle:
-
-> **Static analysis finds possibilities.
-> AI determines reality.**
-
----
-
-## 📌 Summary
-
-- Hybrid **static + AI security tool**
-- Practical **developer-first CLI**
-- Clean **reporting + visualization**
-- Designed for **real-world repositories**
-
----
-
-## ⚙️ Generated by Repo Shield
+- Rerun with `--no-ai`

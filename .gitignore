@@ -31,12 +31,10 @@ htmlcov/
 .env.*
 *.local
 
-# Streamlit and runtime files
-.streamlit/secrets.toml
+# Runtime files
 *.log
 
-# Generated scan reports
-report.md
+# Generated scan data
 report.json
 
 # OS and editor files
