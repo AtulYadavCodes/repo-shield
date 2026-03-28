@@ -1,16 +1,43 @@
 # Repo Shield
 
-Repo Shield is a terminal-first security scanner for code repositories.
-It uses static checks (AST, regex, entropy) and an optional Gemini AI audit.
+Repo Shield is a terminal-first repository security scanner.
+It combines static checks (regex, entropy, and Python AST rules) with an optional Gemini-based AI review step.
 
-## Features
+## What It Detects
 
-- Detects high-entropy secret-like strings
-- Flags hardcoded credentials (tokens, passwords, API keys)
-- Identifies JWT and AWS-style key patterns
-- Scans dependency manifests for risky/unpinned versions
-- Optionally runs AI audit summaries with Gemini
-- Prints a full scan report directly in the terminal
+- Hardcoded credential patterns (passwords, API keys, secrets)
+- JWT token patterns
+- AWS Access Key ID and AWS Secret Key patterns
+- High-entropy secret-like strings
+- Dangerous Python logic patterns (for example, eval and exec)
+- Risky dependency declarations in:
+  - requirements.txt
+  - package.json
+
+## Current CLI Structure
+
+Repo Shield exposes one command group:
+
+```bash
+repo-shield scan [repo_url_or_path] [--max-files N] [--no-ai]
+```
+
+Arguments:
+
+- repo_url_or_path (optional)
+  - Default: thisdir
+  - Accepts:
+    - thisdir (scan current working directory)
+    - local path (for example C:/work/my-repo)
+    - remote Git URL (for example https://github.com/org/repo)
+
+Options:
+
+- --no-ai
+  - Run only static scanning (skip Gemini audit)
+- --max-files N
+  - Limit how many eligible findings are sent to AI
+  - 0 means no limit
 
 ## Requirements
 
@@ -19,18 +46,34 @@ It uses static checks (AST, regex, entropy) and an optional Gemini AI audit.
 
 ## Installation
 
+Editable install:
+
 ```bash
 python -m pip install -e .
 ```
 
-Windows (venv):
+Windows (venv example):
 
 ```powershell
 . ./.venv/Scripts/Activate.ps1
 python -m pip install -e .
 ```
 
-## Usage
+## Optional AI Setup
+
+Create a .env file in project root:
+
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+If key is missing, Repo Shield will fail AI initialization and you can run scanner-only mode:
+
+```bash
+repo-shield scan thisdir --no-ai
+```
+
+## Usage Examples
 
 Scan current directory:
 
@@ -38,58 +81,63 @@ Scan current directory:
 repo-shield scan
 ```
 
-Scan explicit source:
+Scan local path:
 
 ```bash
-repo-shield scan thisdir
-repo-shield scan C:/path/to/project
-repo-shield scan https://github.com/user/repo
+repo-shield scan C:/path/to/repo
 ```
 
-Useful flags:
-
-- `--no-ai` skip AI audit
-- `--max-files N` limit files sent to AI audit
-
-Examples:
+Scan remote repository without AI:
 
 ```bash
-repo-shield scan thisdir --no-ai
-repo-shield scan https://github.com/user/repo --max-files 5
+repo-shield scan https://github.com/user/repo --no-ai
 ```
 
-## AI Setup (Optional)
-
-Create `.env` in the project root:
-
-```env
-GEMINI_API_KEY=your_key_here
-```
-
-If the key is missing or quota is exhausted, run scanner-only mode:
+Scan with AI but only first 5 eligible files:
 
 ```bash
-repo-shield scan thisdir --no-ai
+repo-shield scan thisdir --max-files 5
 ```
 
-## Output
+## Output Format
 
-Repo Shield prints:
+Terminal report includes:
 
-- Static finding counts by severity
-- Detailed findings list
-- AI audit summary per file
-- Regex + AI confirmed "real issues"
+- Final Result
+- Repository source
+- Total static findings and severity breakdown
+- Detailed static findings list
+- AI audit summary:
+  - files audited
+  - success/failed count
+  - per-file AI response
 
-All output is shown in the terminal. No dashboard or report file is generated.
+Important:
+
+- Static findings are preliminary and not a final security verdict.
+- If AI is skipped or unavailable, the report still prints static findings.
+
+## Project Modules
+
+- cli.py: command parsing, orchestration, terminal report rendering
+- scanner.py: repository preparation (clone/copy) and scan kickoff
+- analyzer.py: static analysis rules and finding generation
+- ai_audit.py: Gemini prompt construction and AI call
+- models.py: shared data model types
 
 ## Troubleshooting
 
-`repo-shield` not recognized:
+Command not found (repo-shield):
 
-- Activate your virtual environment
-- Or use `.venv/Scripts/repo-shield.exe --help`
+- Activate your environment first
+- Or run module install again: python -m pip install -e .
 
-AI quota errors (HTTP 429):
+AI quota/rate limit errors:
 
-- Rerun with `--no-ai`
+- Re-run with --no-ai
+- Or reduce load with --max-files
+
+No findings when expected:
+
+- Confirm you are scanning the intended path/repository
+- Verify target files are not inside skipped directories (.git, .venv, node_modules, **pycache**)
