@@ -103,6 +103,12 @@ def _audit_line(item: dict) -> str:
     return f"{verdict} ({_confidence(result.get('confidence', 0)):.2f}) type={result.get('type', 'unknown')}"
 
 
+def _print_indented(text: str, indent: str = "     ") -> None:
+    lines = (text or "").splitlines() or [""]
+    for line in lines:
+        print(f"{indent}{line}")
+
+
 def _print_report(source_ref: str, findings: list[AuditTask], audits: list[dict]) -> None:
     counts = {"critical": 0, "high": 0, "medium": 0}
     for t in findings:
@@ -138,9 +144,10 @@ def _print_report(source_ref: str, findings: list[AuditTask], audits: list[dict]
         for i, item in enumerate(audits, 1):
             file_name = os.path.basename(str(item.get("file_path") or ""))
             print(f"  {i}. {file_name}")
-            print(f"     {_audit_line(item)}")
+            _print_indented(_audit_line(item))
+            print("--" * 72 + "\n")
 
-    print("=" * 72 + "\n")
+   # print("==" * 72 + "\n")
 
 
 def run_scan(args: argparse.Namespace) -> int:

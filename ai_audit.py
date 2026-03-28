@@ -20,9 +20,10 @@ class GeminiAuditor:
             "Respond ONLY as plain text (NO JSON and NO curly braces) and keep it short and direct.\n"
             "\n"
             "status: Real Vulnerability | False Positive\n"
-            
-            "reason: string\n"
-            "recommendation: string\n"
+            "space for indentation\n"
+            "     reason: string\n"
+            "space for indentation\n"
+            "     recommendation: string\n"
             "\n\n"
             f"Language: {task.language}\n"
             f"Reason: {task.reason}\n\n"
