@@ -53,6 +53,29 @@ def _short_reason(reason: str) -> str:
     return reason
 
 
+def _finding_kind_and_score(reason: str) -> tuple[str, str]:
+    text = reason.lower()
+    if "high-entropy" in text:
+        match = re.search(r"entropy=([0-9]+(?:\.[0-9]+)?)", reason, re.IGNORECASE)
+        score = match.group(1) if match else "n/a"
+        return "AST", f"entropy={score}"
+    if "ast: dangerous logic" in text:
+        return "AST", "ast_score=1.00"
+    return "REGEX", ""
+
+
+def _final_result(findings: list[AuditTask], audits: list[dict]) -> str:
+    if not findings:
+        return "PASS (no static findings)"
+    if not audits:
+        return "REVIEW REQUIRED (static findings detected; not final)"
+
+    had_error = any(bool(item.get("error")) for item in audits)
+    if had_error:
+        return "REVIEW REQUIRED (AI audit had errors; not final)"
+    return "REVIEW REQUIRED (potential issues detected; manual review needed)"
+
+
 def _is_regex_signal(reason: str) -> bool:
     text = reason.lower()
     return any(
@@ -71,7 +94,9 @@ def _audit_line(item: dict) -> str:
         e = str(item.get("error") or "")
         return "quota/rate-limit exceeded" if any(k in e.lower() for k in ["429", "resource_exhausted", "quota"]) else f"failed: {e}"
 
-    result = item.get("result") or {}
+    result = item.get("result")
+    if isinstance(result, str):
+        return result.strip() or "no AI response"
     if not isinstance(result, dict):
         return "no AI response"
     verdict = "vulnerability" if result.get("is_vulnerability") else "no vulnerability"
@@ -86,50 +111,22 @@ def _print_report(source_ref: str, findings: list[AuditTask], audits: list[dict]
     print("\n" + "=" * 72)
     print("REPO SHIELD TERMINAL REPORT")
     print("=" * 72)
+    print(f"Final Result: {_final_result(findings, audits)}")
     print(f"Repository: {source_ref}")
     print(f"Total findings (static): {len(findings)}")
+    print("Static findings are preliminary and not a final security verdict.")
     print(f"Severity breakdown: critical={counts['critical']} high={counts['high']} medium={counts['medium']}")
-
-    real_issues = []
-    false_positives = []
-
-    for item in audits:
-        if item.get("error"):
-            continue
-        result = item.get("result") or {}
-        if not isinstance(result, dict):
-            continue
-
-        if bool(result.get("is_vulnerability")) and _is_regex_signal(str(item.get("reason") or "")):
-            real_issues.append(
-                {
-                    "file": os.path.basename(str(item.get("file_path") or "")),
-                    "type": str(result.get("type") or "unknown"),
-                    "confidence": _confidence(result.get("confidence", 0)),
-                    "fix": str(result.get("fix") or "No fix provided"),
-                }
-            )
-        elif not bool(result.get("is_vulnerability")):
-            false_positives.append(
-                {
-                    "file": os.path.basename(str(item.get("file_path") or "")),
-                    "reason": _short_reason(str(item.get("reason") or "")),
-                    "confidence": _confidence(result.get("confidence", 0)),
-                    "type": str(result.get("type") or "unknown"),
-                }
-            )
-
-    print(f"Real issues (regex + AI confirmed): {len(real_issues)}")
-    for i, issue in enumerate(real_issues, 1):
-        print(f"  {i}. file={issue['file']} type={issue['type']} confidence={issue['confidence']:.2f}")
-        print(f"     fix: {issue['fix']}")
 
     print("\nDetailed findings:")
     if not findings:
         print("  none")
     else:
         for i, t in enumerate(findings, 1):
-            print(f"  {i}. [{_severity(t.reason)}] {os.path.basename(t.file_path)} - {_short_reason(t.reason)}")
+            kind, score = _finding_kind_and_score(t.reason)
+            side = f" {score}" if score else ""
+            print(
+                f"  {i}. [{_severity(t.reason)}] [{kind}{side}] {os.path.basename(t.file_path)} - {_short_reason(t.reason)}"
+            )
 
     print("\nAI audit summary:")
     if not audits:
@@ -139,14 +136,9 @@ def _print_report(source_ref: str, findings: list[AuditTask], audits: list[dict]
         failed = sum(1 for x in audits if x.get("error"))
         print(f"  files audited={len(audits)} success={success} failed={failed}")
         for i, item in enumerate(audits, 1):
-            print(f"  {i}. {os.path.basename(str(item.get('file_path') or ''))}: {_audit_line(item)}")
-
-        print("\nFalse positives (AI says no vulnerability):")
-        if not false_positives:
-            print("  none")
-        else:
-            for i, fp in enumerate(false_positives, 1):
-                print(f"  {i}. {fp['file']} reason={fp['reason']} confidence={fp['confidence']:.2f} type={fp['type']}")
+            file_name = os.path.basename(str(item.get("file_path") or ""))
+            print(f"  {i}. {file_name}")
+            print(f"     {_audit_line(item)}")
 
     print("=" * 72 + "\n")
 
@@ -171,7 +163,7 @@ def run_scan(args: argparse.Namespace) -> int:
             return 0
 
         try:
-            auditor = GeminiAuditor(api_key=os.getenv("GOOGLE_API_KEY"))
+            auditor = GeminiAuditor(api_key=os.getenv("GEMINI_API_KEY"))
         except ValueError as exc:
             print(str(exc))
             return 1

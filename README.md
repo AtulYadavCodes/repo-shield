@@ -63,7 +63,7 @@ repo-shield scan https://github.com/user/repo --max-files 5
 Create `.env` in the project root:
 
 ```env
-GOOGLE_API_KEY=your_key_here
+GEMINI_API_KEY=your_key_here
 ```
 
 If the key is missing or quota is exhausted, run scanner-only mode:
