@@ -123,15 +123,19 @@ def _print_report(source_ref: str, findings: list[AuditTask], audits: list[dict]
     print("Static findings are preliminary and not a final security verdict.")
     print(f"Severity breakdown: critical={counts['critical']} high={counts['high']} medium={counts['medium']}")
 
-    print("\nDetailed findings:")
+    print("\nDetailed findings:\n")
     if not findings:
         print("  none")
     else:
+        print(
+                f"     severity       method         file name                reason\n"
+               # "                                                                   "
+            )
         for i, t in enumerate(findings, 1):
             kind, score = _finding_kind_and_score(t.reason)
             side = f" {score}" if score else ""
             print(
-                f"  {i}. [{_severity(t.reason)}] [{kind}{side}] {os.path.basename(t.file_path)} - {_short_reason(t.reason)}"
+                f"  {i}. [{_severity(t.reason)}]      [{kind}{side}]      {os.path.basename(t.file_path)}-       {_short_reason(t.reason)}"
             )
 
     print("\nAI audit summary:")
