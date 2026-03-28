@@ -117,6 +117,46 @@ Important:
 - Static findings are preliminary and not a final security verdict.
 - If AI is skipped or unavailable, the report still prints static findings.
 
+## Sample Report
+
+Example output from a scan run:
+
+Command used:
+
+```bash
+repo-shield scan https://github.com/Mateusz-Nejman/Pixed --max-files 1
+```
+
+```text
+========================================================================
+REPO SHIELD TERMINAL REPORT
+========================================================================
+Final Result: REVIEW REQUIRED (potential issues detected; manual review needed)
+Repository: https://github.com/Mateusz-Nejman/Pixed
+Total findings (static): 4
+Static findings are preliminary and not a final security verdict.
+Severity breakdown: critical=4 high=0 medium=0
+
+Detailed findings:
+
+     severity       method         file name                reason
+
+  1. [critical]      [REGEX]      FlyingButton.axaml-       hardcoded credential pattern
+  2. [critical]      [REGEX]      ToolButton.axaml-       hardcoded credential pattern
+  3. [critical]      [REGEX]      ToolRadio.axaml-       hardcoded credential pattern
+  4. [critical]      [REGEX]      ToolRadioCustom.axaml-       hardcoded credential pattern
+
+AI audit summary:
+  files audited=1 success=1 failed=0
+  1. FlyingButton.axaml
+  status: False Positive
+       reason: The attribute 'RecognizesAccessKey' is a UI property used for keyboard mnemonics (e.g., Alt+Key shortcuts), and 'x:Key' is a standard identifier for resources in Avalonia/XAML. Neither contains sensitive credentials.
+       recommendation: Ignore this finding as it is a false positive triggered by keywords related to UI functionality.
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+Scan complete (scanner + AI).
+```
+
 ## Project Modules
 
 - cli.py: command parsing, orchestration, terminal report rendering

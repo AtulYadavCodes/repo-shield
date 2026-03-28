@@ -103,7 +103,7 @@ def _audit_line(item: dict) -> str:
     return f"{verdict} ({_confidence(result.get('confidence', 0)):.2f}) type={result.get('type', 'unknown')}"
 
 
-def _print_indented(text: str, indent: str = "     ") -> None:
+def _print_indented(text: str, indent: str = "  ") -> None:
     lines = (text or "").splitlines() or [""]
     for line in lines:
         print(f"{indent}{line}")
